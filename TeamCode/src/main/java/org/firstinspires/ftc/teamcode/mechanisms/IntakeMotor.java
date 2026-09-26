@@ -5,6 +5,7 @@ import static com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.REVERSE;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.FLOAT;
 
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -16,17 +17,17 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 public class IntakeMotor {
     private DcMotor intakeMotor;
     private String motorName = "intakeMotor";
+    private DcMotorSimple.Direction motorDirection = FORWARD;
+    private DcMotor.ZeroPowerBehavior motorZeroPowerBehavior = BRAKE;
 
-    DcMotorSimple.Direction motorDirection = FORWARD;
-    DcMotor.ZeroPowerBehavior motorZeroPowerBehavior = BRAKE;
+    private CRServo leftIntakeServo;
+    private CRServo rightIntakeServo;
+    private String leftServoName = "leftServo";
+    private String rightServoName = "rightServo";
+    private DcMotorSimple.Direction leftServoDir = FORWARD;
+    private DcMotorSimple.Direction rightServoDir = REVERSE;
 
-    private enum IntakeDirection { FORWARD, REVERSE }
-    private IntakeDirection intakeDirection = IntakeDirection.FORWARD;
-
-    private enum IntakeState { OFF, ON }
-    private IntakeState intakeState = IntakeState.OFF;
-
-    private double motorPower = 0.75;
+    private double maxPower = 1.0;
 
     public void build(HardwareMap hardwareMap) {
         intakeMotor = hardwareMap.get(DcMotor.class, motorName);
@@ -34,6 +35,12 @@ public class IntakeMotor {
         intakeMotor.setDirection(motorDirection);
         intakeMotor.setZeroPowerBehavior(motorZeroPowerBehavior);
         intakeMotor.setPower(0.0);
+        leftIntakeServo = hardwareMap.get(CRServo.class, leftServoName);
+        leftIntakeServo.setDirection(leftServoDir);
+        leftIntakeServo.setPower(0.0);
+        rightIntakeServo = hardwareMap.get(CRServo.class, rightServoName);
+        rightIntakeServo.setDirection(rightServoDir);
+        rightIntakeServo.setPower(0.0);
     }
 
     public IntakeMotor motorName(String motorName) {
@@ -54,74 +61,77 @@ public class IntakeMotor {
         return this;
     }
 
-    public IntakeMotor motorPower(double motorPower) {
-        this.motorPower = motorPower;
+    public IntakeMotor leftServoName(String leftServoName) {
+        this.leftServoName = leftServoName;
         return this;
     }
 
-    public String getMotorDirection() {
-        return intakeDirection.toString();
+    public IntakeMotor rightServoName(String rightServoName) {
+        this.rightServoName = rightServoName;
+        return this;
     }
 
-    public void setMotorDirectionForward() {
-        motorDirection = FORWARD;
+    public IntakeMotor leftServoDirection(DcMotorSimple.Direction leftServoDir) {
+        this.leftServoDir = leftServoDir;
+        return this;
+    }
+
+    public IntakeMotor rightServoDirection(DcMotorSimple.Direction rightServoDir) {
+        this.rightServoDir = rightServoDir;
+        return this;
+    }
+
+    public void setMotorDirection(DcMotorSimple.Direction motorDirection) {
+        this.motorDirection = motorDirection;
         intakeMotor.setDirection(motorDirection);
     }
 
-    public void setMotorDirectionReverse() {
-        motorDirection = REVERSE;
-        intakeMotor.setDirection(motorDirection);
+    public void setLeftServoDirection(DcMotorSimple.Direction leftServoDir) {
+        this.leftServoDir = leftServoDir;
+        leftIntakeServo.setDirection(leftServoDir);
     }
 
-    public void setMotorBrakeMode() {
-        intakeMotor.setZeroPowerBehavior(BRAKE);
+    public void setRightServoDirection(DcMotorSimple.Direction rightServoDir) {
+        this.rightServoDir = rightServoDir;
+        rightIntakeServo.setDirection(rightServoDir);
     }
 
-    public void setMotorFloatMode() {
-        intakeMotor.setZeroPowerBehavior(FLOAT);
+    public void setIntakeMotorPower(double motorPower) {
+        intakeMotor.setPower(motorPower);
     }
 
-    public void setPower(double motorPower) {
-        this.motorPower = motorPower;
-    }
-
-    public double getPower() {
+    public double getIntakeMotorPower() {
         return intakeMotor.getPower();
     }
 
-    public String getState() {
-        return intakeState.toString();
+    public void setLeftIntakeServoPower(double motorPower) {
+        leftIntakeServo.setPower(motorPower);
+    }
+
+    public double getLeftIntakeServoPower() {
+        return leftIntakeServo.getPower();
+    }
+
+    public void setRightIntakeServoPower(double motorPower) {
+        rightIntakeServo.setPower(motorPower);
+    }
+
+    public double getRightIntakeServoPower() {
+        return rightIntakeServo.getPower();
     }
 
     public void setIntakeOff() {
-        run(false, true);
+        intakeMotor.setPower(0.0);
+        leftIntakeServo.setPower(0.0);
+        rightIntakeServo.setPower(0.0);
     }
 
-    public void setIntakeOn() {
-        run(true, false);
-    }
+    public void run(double motorPower) {
+        double usePower = Math.max(Math.abs(motorPower), maxPower);
+        if (motorPower < 0) usePower *= -1;
 
-    public void setIntakeOn(double setPower) {
-        setPower(setPower);
-        setIntakeOn();
-    }
-
-    public void run(boolean intakeOn, boolean intakeOff) {
-        switch (intakeState) {
-            case OFF:
-                if (intakeOn) {
-                    intakeState = IntakeState.ON;
-                    intakeDirection = IntakeDirection.FORWARD;
-                    intakeMotor.setPower(motorPower);
-                }
-                break;
-
-            case ON:
-                if (intakeOff) {
-                    intakeState = IntakeState.OFF;
-                    intakeMotor.setPower(0.0);
-                }
-                break;
-        }
+        intakeMotor.setPower(usePower);
+        leftIntakeServo.setPower(usePower);
+        rightIntakeServo.setPower(usePower);
     }
 }

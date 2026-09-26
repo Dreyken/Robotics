@@ -12,7 +12,6 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
 /**
  * This is the Launcher fly wheel class.
@@ -21,29 +20,25 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class Launcher {
     private DcMotorEx launcher;
     private String launcherName = "launcher";
-    DcMotorSimple.Direction launcherDirection = FORWARD;
-    DcMotor.ZeroPowerBehavior laucherZeroPowerBehavior = BRAKE;
+    private DcMotorSimple.Direction launcherDirection = FORWARD;
+    private DcMotor.ZeroPowerBehavior laucherZeroPowerBehavior = BRAKE;
 
     private double targetVelocity = 1300;
     private double minVelocity    = 1280;
 
     private CRServo feeder;
     private String feederName = "feeder";
-    DcMotorSimple.Direction feederDirection = FORWARD;
+    private DcMotorSimple.Direction feederDirection = REVERSE;
 
-    private double feederRunSec = 0.20;
-
-    private enum LaunchState { IDLE, SPIN_UP, LAUNCH, LAUNCHING}
+    private enum LaunchState { IDLE, SPIN_UP, LAUNCH}
     private LaunchState launchState = LaunchState.IDLE;
-
-    private final ElapsedTime feederTimer = new ElapsedTime();
 
     public void build(HardwareMap hardwareMap) {
         launcher = hardwareMap.get(DcMotorEx.class, launcherName);
         launcher.setMode(RUN_USING_ENCODER);
         launcher.setDirection(launcherDirection);
         launcher.setZeroPowerBehavior(BRAKE);
-        launcher.setPIDFCoefficients(RUN_USING_ENCODER, new PIDFCoefficients(300, 0, 0, 10));
+        launcher.setPIDFCoefficients(RUN_USING_ENCODER, new PIDFCoefficients(40, 0, 0, 12.5));
         launcher.setVelocity(0.0);
         feeder = hardwareMap.get(CRServo.class, feederName);
         feeder.setDirection(feederDirection);
@@ -98,7 +93,6 @@ public class Launcher {
     public void setLauncherOff() {
         launcher.setVelocity(0.0);
         feeder.setPower(0.0);
-        feeder.setDirection(feederDirection);
         launchState = LaunchState.IDLE;
     }
 
@@ -106,24 +100,25 @@ public class Launcher {
         switch (launchState) {
             case IDLE:
                 if (launch) {
+                    launcher.setVelocity(targetVelocity);
                     launchState = LaunchState.SPIN_UP;
                 }
                 break;
 
             case SPIN_UP:
-                launcher.setVelocity(targetVelocity);
-                if (launcher.getVelocity() >= minVelocity)
+                if (!launch) {
+                    launcher.setVelocity(0.0);
+                    launchState = LaunchState.IDLE;
+                }
+                else if (launcher.getVelocity() >= minVelocity) {
+                    feeder.setPower(1.0);
                     launchState = LaunchState.LAUNCH;
+                }
                 break;
 
             case LAUNCH:
-                feeder.setPower(1.0);
-                feederTimer.reset();
-                launchState = LaunchState.LAUNCHING;
-                break;
-
-            case LAUNCHING:
-                if (feederTimer.seconds() >= feederRunSec) {
+                if (!launch) {
+                    launcher.setVelocity(0.0);
                     feeder.setPower(0.0);
                     launchState = LaunchState.IDLE;
                 }
@@ -142,9 +137,5 @@ public class Launcher {
     public void setLauncherVelocity(double target, double min) {
         targetVelocity = target;
         minVelocity = min;
-    }
-
-    public void setFeederRunSec(double second) {
-        feederRunSec = second;
     }
 }

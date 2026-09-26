@@ -33,11 +33,11 @@ public class MecanumDrive {
     private String rightFrontName = "rightFront";
     private String rightBackName = "rightBack";
 
-    DcMotorSimple.Direction leftFrontDirection = REVERSE;
-    DcMotorSimple.Direction leftBackDirection = REVERSE;
-    DcMotorSimple.Direction rightFrontDirection = FORWARD;
-    DcMotorSimple.Direction rightBackDirection = FORWARD;
-    DcMotor.ZeroPowerBehavior driveZeroPowerBehavior = BRAKE;
+    private DcMotorSimple.Direction leftFrontDirection = REVERSE;
+    private DcMotorSimple.Direction leftBackDirection = REVERSE;
+    private DcMotorSimple.Direction rightFrontDirection = FORWARD;
+    private DcMotorSimple.Direction rightBackDirection = FORWARD;
+    private DcMotor.ZeroPowerBehavior driveZeroPowerBehavior = BRAKE;
 
     private double leftPowerFront;
     private double rightPowerFront;
